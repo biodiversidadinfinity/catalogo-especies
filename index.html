@@ -7,56 +7,105 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 900px;
+      max-width: 1000px;
       margin: 30px auto;
       padding: 0 18px;
-      background: #f4f7f4;
-      color: #24352b;
+      line-height: 1.6;
+      color: #222;
     }
-    header {
-      background: #24553b;
-      color: white;
-      padding: 25px;
-      border-radius: 12px;
-    }
+    h1 { color: #28613a; }
     input {
-      box-sizing: border-box;
       width: 100%;
+      box-sizing: border-box;
       padding: 12px;
-      margin: 20px 0;
+      margin: 12px 0 20px;
       font-size: 16px;
     }
-    section {
-      background: white;
-      padding: 18px;
-      border-radius: 10px;
-    }
-    a { color: #176b45; }
+    li { margin-bottom: 8px; }
+    a { color: #1769aa; }
+    #estado { color: #555; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Catálogo de Biodiversidad</h1>
-    <p>Índice de especies y enlaces a mis blogs</p>
-  </header>
+  <h1>Catálogo de Biodiversidad</h1>
+  <p>Índice de especies y enlaces a mis blogs.</p>
 
+  <label for="busqueda">Buscar por nombre vulgar o científico:</label>
   <input id="busqueda" type="search"
-         placeholder="Buscar una especie...">
+         placeholder="Escribí el nombre de una especie">
 
-  <section>
-    <h2>Especies</h2>
-    <ul id="lista">
-      <li>Próximamente incorporaremos las especies del catálogo.</li>
-    </ul>
-  </section>
+  <p id="estado">Cargando especies...</p>
+  <ul id="lista"></ul>
 
   <script>
-    document.getElementById("busqueda").addEventListener("input", function() {
-      const texto = this.value.toLowerCase();
-      document.querySelectorAll("#lista li").forEach(function(item) {
-        item.hidden = !item.textContent.toLowerCase().includes(texto);
+    const archivo = "Reptiles%20enlaces.txt";
+    const lista = document.getElementById("lista");
+    const estado = document.getElementById("estado");
+    const busqueda = document.getElementById("busqueda");
+    let especies = [];
+
+    fetch(archivo)
+      .then(respuesta => {
+        if (!respuesta.ok) {
+          throw new Error("No se pudo abrir el archivo de especies.");
+        }
+        return respuesta.text();
+      })
+      .then(texto => {
+        const documento = new DOMParser().parseFromString(
+          texto, "text/html"
+        );
+
+        const enlaces = documento.querySelectorAll("a[href]");
+        const vistos = new Set();
+
+        enlaces.forEach(enlace => {
+          const nombre = enlace.textContent.trim().replace(/\s+/g, " ");
+          const url = enlace.href;
+
+          if (
+            nombre &&
+            /^https?:$/.test(new URL(url).protocol) &&
+            !vistos.has(url)
+          ) {
+            vistos.add(url);
+            especies.push({ nombre, url });
+          }
+        });
+
+        mostrarEspecies();
+      })
+      .catch(error => {
+        estado.textContent =
+          "No se pudieron cargar las especies. Revisaremos el archivo.";
+        console.error(error);
       });
-    });
+
+    function mostrarEspecies() {
+      const termino = busqueda.value.toLowerCase().trim();
+      const resultados = especies.filter(especie =>
+        especie.nombre.toLowerCase().includes(termino)
+      );
+
+      lista.replaceChildren();
+
+      resultados.forEach(especie => {
+        const item = document.createElement("li");
+        const enlace = document.createElement("a");
+        enlace.href = especie.url;
+        enlace.textContent = especie.nombre;
+        enlace.target = "_blank";
+        enlace.rel = "noopener noreferrer";
+        item.appendChild(enlace);
+        lista.appendChild(item);
+      });
+
+      estado.textContent = especies.length
+        ? "Enlaces encontrados: " + resultados.length
+        : "No se encontraron enlaces en el archivo.";
+    }
+
+    busqueda.addEventListener("input", mostrarEspecies);
   </script>
 </body>
 </html>
