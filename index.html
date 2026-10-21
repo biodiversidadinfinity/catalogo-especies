@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catálogo de Biodiversidad</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 18px;
+      background: #f4f7f4;
+      color: #24352b;
+    }
+    header {
+      background: #24553b;
+      color: white;
+      padding: 25px;
+      border-radius: 12px;
+    }
+    input {
+      box-sizing: border-box;
+      width: 100%;
+      padding: 12px;
+      margin: 20px 0;
+      font-size: 16px;
+    }
+    section {
+      background: white;
+      padding: 18px;
+      border-radius: 10px;
+    }
+    a { color: #176b45; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Catálogo de Biodiversidad</h1>
+    <p>Índice de especies y enlaces a mis blogs</p>
+  </header>
+
+  <input id="busqueda" type="search"
+         placeholder="Buscar una especie...">
+
+  <section>
+    <h2>Especies</h2>
+    <ul id="lista">
+      <li>Próximamente incorporaremos las especies del catálogo.</li>
+    </ul>
+  </section>
+
+  <script>
+    document.getElementById("busqueda").addEventListener("input", function() {
+      const texto = this.value.toLowerCase();
+      document.querySelectorAll("#lista li").forEach(function(item) {
+        item.hidden = !item.textContent.toLowerCase().includes(texto);
+      });
+    });
+  </script>
+</body>
+</html>
