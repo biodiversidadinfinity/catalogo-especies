@@ -121,34 +121,40 @@ let especiesVulgares = [];
        
 
       documentoVulgares.querySelectorAll("p").forEach(parrafo => {
-        parrafo.innerHTML.split(/<br\s*\/?>/i).forEach(fragmento => {
-          const segmento = documentoVulgares.createElement("div");
-          segmento.innerHTML = fragmento;
+        let vulgarPendiente = "";
+     
+      parrafo.querySelectorAll("b, br, a[href]").forEach(elemento => {
+        if (elemento.tagName === "BR") {
+          vulgarPendiente = "";
+          return;
+        }
 
-          const enlace = segmento.querySelector("a[href]");
-          const nombre = segmento.querySelector("b");
+        if (elemento.tagName === "B") {
+          vulgarPendiente = elemento.textContent
+            .replace(/\u00a0/g, " ")
+            .replace(/\s*\($/, "")
+            .replace(/\s+/g, " ")
+            .trim();
+          return;
+        }
 
-          if (!enlace || !nombre) return;
-
-          const cientifico = enlace.textContent
+        if (elemento.tagName === "A") {
+          const cientifico = elemento.textContent
             .replace(/\s+/g, " ")
             .trim();
 
-          const vulgar = nombre.textContent
-  .replace(/\u00a0/g, " ")
-  .replace(/\s*\($/, "")
-  .replace(/\s+/g, " ")
-  .trim();
-
-          if (vulgar && cientifico) {
+          if (vulgarPendiente && cientifico) {
             especiesVulgares.push({
-              vulgar,
+              vulgar: vulgarPendiente,
               cientifico,
-              url: enlace.href
+              url: elemento.href
             });
           }
-        });
+
+          vulgarPendiente = "";
+        }
       });
+    });
 
       mostrarVulgares();
 
