@@ -45,14 +45,14 @@
   
 <script>
   const archivo = "https://raw.githubusercontent.com/biodiversidadinfinity/catalogo-especies/main/Reptiles%20kon%20enlases.txt";
-
+const archivoVulgares = "https://raw.githubusercontent.com/biodiversidadinfinity/catalogo-especies/main/reptiles-vulgares.html";
   const lista = document.getElementById("lista");
   const listaVulgares = document.getElementById("listaVulgares");
   const estado = document.getElementById("estado");
   const busqueda = document.getElementById("busqueda");
 
   let especies = [];
-
+let especiesVulgares = [];
   fetch(archivo)
     .then(respuesta => {
       if (!respuesta.ok) {
@@ -105,6 +105,46 @@
       console.error(error);
     });
 
+    fetch(archivoVulgares)
+    .then(respuesta => {
+      if (!respuesta.ok) {
+        throw new Error("No se pudo abrir la lista de nombres vulgares.");
+      }
+      return respuesta.text();
+    })
+    .then(texto => {
+      const documentoVulgares = new DOMParser().parseFromString(
+        texto, "text/html"
+      );
+
+      documentoVulgares.querySelectorAll("p a[href]").forEach(enlace => {
+        const parrafo = enlace.closest("p");
+        const cientifico = enlace.textContent.trim().replace(/\s+/g, " ");
+        const url = enlace.href;
+
+        if (!parrafo || !cientifico) return;
+
+        const textoCompleto = parrafo.textContent
+          .replace(/\u00a0/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        const vulgar = textoCompleto
+          .replace(cientifico, "")
+          .replace(/[()[\]]/g, "")
+          .trim();
+
+        if (vulgar) {
+          especiesVulgares.push({ vulgar, cientifico, url });
+        }
+      
+            });
+      mostrarVulgares();
+    })
+  
+    .catch(error => {
+      console.error(error);
+    });
   function crearEnlace(especie, texto) {
     const enlace = document.createElement("a");
     enlace.href = especie.url;
@@ -139,24 +179,37 @@
         lista.appendChild(item);
       });
 
-    [...resultados]
-      .sort((a, b) =>
-        a.vulgar.localeCompare(b.vulgar)
-      )
-      .forEach(especie => {
-        const item = document.createElement("li");
-        item.append(
-          crearEnlace(especie, especie.vulgar),
-          document.createTextNode(" (" + especie.cientifico + ")")
-        );
-        listaVulgares.appendChild(item);
-      });
+ 
 
     estado.textContent =
       "Especies encontradas: " + resultados.length;
   }
+function mostrarVulgares() {
+  const termino = busqueda.value.toLowerCase().trim();
 
+  const resultados = especiesVulgares.filter(especie =>
+    especie.vulgar.toLowerCase().includes(termino) ||
+    especie.cientifico.toLowerCase().includes(termino)
+  );
+
+  listaVulgares.replaceChildren();
+
+  resultados
+    .sort((a, b) => a.vulgar.localeCompare(b.vulgar))
+    .forEach(especie => {
+      const item = document.createElement("li");
+
+      item.append(
+        document.createTextNode(especie.vulgar + " ("),
+        crearEnlace(especie, especie.cientifico),
+        document.createTextNode(")")
+      );
+
+      listaVulgares.appendChild(item);
+    });
+}
   busqueda.addEventListener("input", mostrarEspecies);
+  busqueda.addEventListener("input", mostrarVulgares);
 </script>
 
 </body>
