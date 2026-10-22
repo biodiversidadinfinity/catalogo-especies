@@ -34,78 +34,130 @@
   <input id="busqueda" type="search"
          placeholder="Escribí el nombre de una especie">
 
-  <p id="estado">Cargando especies...</p>
-  <ul id="lista"></ul>
+  <h2>Lista de reptiles por nombre científico</h2>
+<ul id="lista"></ul>
 
-  <script>
-    const archivo = "https://raw.githubusercontent.com/biodiversidadinfinity/catalogo-especies/main/Reptiles%20kon%20enlases.txt";
-    const lista = document.getElementById("lista");
-    const estado = document.getElementById("estado");
-    const busqueda = document.getElementById("busqueda");
-    let especies = [];
+<h2>Lista de reptiles por nombre vulgar</h2>
+<ul id="listaVulgares"></ul>
 
-    fetch(archivo)
-      .then(respuesta => {
-        if (!respuesta.ok) {
-          throw new Error("No se pudo abrir el archivo de especies.");
-        }
-        return respuesta.text();
-      })
-      .then(texto => {
-        const documento = new DOMParser().parseFromString(
-          texto, "text/html"
-        );
+<p id="estado">Cargando especies...</p>
 
-        const enlaces = documento.querySelectorAll("a[href]");
-        const vistos = new Set();
+  
+<script>
+  const archivo = "https://raw.githubusercontent.com/biodiversidadinfinity/catalogo-especies/main/Reptiles%20kon%20enlases.txt";
 
-        enlaces.forEach(enlace => {
-          const nombre = enlace.textContent.trim().replace(/\s+/g, " ");
-          const url = enlace.href;
+  const lista = document.getElementById("lista");
+  const listaVulgares = document.getElementById("listaVulgares");
+  const estado = document.getElementById("estado");
+  const busqueda = document.getElementById("busqueda");
 
-          if (
-            nombre &&
-            /^https?:$/.test(new URL(url).protocol) &&
-            !vistos.has(url)
-          ) {
-            vistos.add(url);
-            especies.push({ nombre, url });
-          }
-        });
+  let especies = [];
 
-        mostrarEspecies();
-      })
-      .catch(error => {
-        estado.textContent =
-          "No se pudieron cargar las especies. Revisaremos el archivo.";
-        console.error(error);
-      });
-
-    function mostrarEspecies() {
-      const termino = busqueda.value.toLowerCase().trim();
-      const resultados = especies.filter(especie =>
-        especie.nombre.toLowerCase().includes(termino)
+  fetch(archivo)
+    .then(respuesta => {
+      if (!respuesta.ok) {
+        throw new Error("No se pudo abrir el archivo.");
+      }
+      return respuesta.text();
+    })
+    .then(texto => {
+      const documento = new DOMParser().parseFromString(
+        texto, "text/html"
       );
 
-      lista.replaceChildren();
+      const enlaces = documento.querySelectorAll("a[href]");
+      const vistos = new Set();
 
-      resultados.forEach(especie => {
+      enlaces.forEach(enlace => {
+        const cientifico = enlace.textContent
+          .trim().replace(/\s+/g, " ");
+        const url = enlace.href;
+        const parrafo = enlace.closest("p");
+
+        if (!cientifico || !parrafo || vistos.has(url)) return;
+
+        if (!/^https?:$/.test(new URL(url).protocol)) return;
+
+        vistos.add(url);
+
+        const textoCompleto = parrafo.textContent
+          .replace(/\u00a0/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        const vulgar = textoCompleto
+          .replace(cientifico, "")
+          .replace(/[()[\]]/g, "")
+          .trim();
+
+        especies.push({
+          cientifico,
+          vulgar: vulgar || "Sin datos",
+          url
+        });
+      });
+
+      mostrarEspecies();
+    })
+    .catch(error => {
+      estado.textContent =
+        "No se pudieron cargar las especies. Revisaremos el archivo.";
+      console.error(error);
+    });
+
+  function crearEnlace(especie, texto) {
+    const enlace = document.createElement("a");
+    enlace.href = especie.url;
+    enlace.textContent = texto;
+    enlace.target = "_blank";
+    enlace.rel = "noopener noreferrer";
+    return enlace;
+  }
+
+  function mostrarEspecies() {
+    const termino = busqueda.value.toLowerCase().trim();
+
+    const resultados = especies.filter(especie =>
+      especie.cientifico.toLowerCase().includes(termino) ||
+      especie.vulgar.toLowerCase().includes(termino)
+    );
+
+    lista.replaceChildren();
+    listaVulgares.replaceChildren();
+
+    [...resultados]
+      .sort((a, b) =>
+        a.cientifico.localeCompare(b.cientifico)
+      )
+      .forEach(especie => {
         const item = document.createElement("li");
-        const enlace = document.createElement("a");
-        enlace.href = especie.url;
-        enlace.textContent = especie.nombre;
-        enlace.target = "_blank";
-        enlace.rel = "noopener noreferrer";
-        item.appendChild(enlace);
+        item.append(
+          document.createTextNode(especie.vulgar + " ("),
+          crearEnlace(especie, especie.cientifico),
+          document.createTextNode(")")
+        );
         lista.appendChild(item);
       });
 
-      estado.textContent = especies.length
-        ? "Enlaces encontrados: " + resultados.length
-        : "No se encontraron enlaces en el archivo.";
-    }
+    [...resultados]
+      .sort((a, b) =>
+        a.vulgar.localeCompare(b.vulgar)
+      )
+      .forEach(especie => {
+        const item = document.createElement("li");
+        item.append(
+          crearEnlace(especie, especie.vulgar),
+          document.createTextNode(" (" + especie.cientifico + ")")
+        );
+        listaVulgares.appendChild(item);
+      });
 
-    busqueda.addEventListener("input", mostrarEspecies);
-  </script>
+    estado.textContent =
+      "Especies encontradas: " + resultados.length;
+  }
+
+  busqueda.addEventListener("input", mostrarEspecies);
+</script>
+
 </body>
 </html>
