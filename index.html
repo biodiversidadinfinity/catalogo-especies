@@ -112,7 +112,7 @@ let especiesVulgares = [];
       }
     return respuesta.arrayBuffer();
     })
-      .then(datos => new TextDecoder("windows-1252").decode(datos))
+      .then(datos => new TextDecoder("utf-8").decode(datos))
     .then(texto => {
       const documentoVulgares = new DOMParser().parseFromString(
         texto, "text/html"
@@ -120,42 +120,32 @@ let especiesVulgares = [];
 
        
 
-      documentoVulgares.querySelectorAll("p").forEach(parrafo => {
-        let vulgarPendiente = "";
-     
-      parrafo.querySelectorAll("b, br, a[href]").forEach(elemento => {
-        if (elemento.tagName === "BR") {
-          vulgarPendiente = "";
-          return;
-        }
+     documentoVulgares.querySelectorAll("p").forEach(parrafo => {
+  parrafo.querySelectorAll("a[href]").forEach(enlace => {
+    const cientifico = enlace.textContent
+      .replace(/\s+/g, " ")
+      .trim();
 
-        if (elemento.tagName === "B") {
-          vulgarPendiente = elemento.textContent
-            .replace(/\u00a0/g, " ")
-            .replace(/\s*\($/, "")
-            .replace(/\s+/g, " ")
-            .trim();
-          return;
-        }
+    if (!cientifico) return;
 
-        if (elemento.tagName === "A") {
-          const cientifico = elemento.textContent
-            .replace(/\s+/g, " ")
-            .trim();
+    // Toma solamente el nombre vulgar que precede al enlace.
+    const antesDelEnlace = enlace.previousSibling;
+    if (!antesDelEnlace || antesDelEnlace.nodeType !== Node.TEXT_NODE) return;
 
-          if (vulgarPendiente && cientifico) {
-            especiesVulgares.push({
-              vulgar: vulgarPendiente,
-              cientifico,
-              url: elemento.href
-            });
-          }
+    const vulgar = antesDelEnlace.textContent
+      .replace(/[()[\]]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
 
-          vulgarPendiente = "";
-        }
-      });
+    if (!vulgar) return;
+
+    especiesVulgares.push({
+      vulgar,
+      cientifico,
+      url: enlace.href
     });
-
+  });
+});
       mostrarVulgares();
 
 
